@@ -1,31 +1,35 @@
-FROM "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}python:3.10"
+FROM "debian:bookworm"
 
-ENV DEBIAN_FRONTEND="noninteractive"
+ARG apt_proxy
 
-RUN apt-get -qqy clean && apt-get -qqy update && apt-get -qqy upgrade && apt-get install --no-install-recommends -qqy curl git git-lfs shellcheck busybox && apt-get -qqy autoremove && apt-get -qqy clean && rm -rf /var/lib/apt/lists/*
+USER root
 
-RUN curl --silent --fail https://releases.hashicorp.com/terraform/1.2.4/terraform_1.2.4_linux_amd64.zip | busybox unzip -d /usr/bin/ /dev/stdin && chmod a+x /usr/bin/terraform
+# apt sources
+COPY debian.sources /etc/apt/sources.list.d/debian.sources
 
-RUN curl --silent --fail -L https://github.com/terraform-docs/terraform-docs/releases/download/v0.16.0/terraform-docs-v0.16.0-linux-amd64.tar.gz | tar -C /usr/bin/ -zx terraform-docs
+# apt proxy
+RUN test -n "$apt_proxy" && echo "Acquire::http { Proxy \"$apt_proxy\"; };" >/etc/apt/apt.conf.d/31proxy || :
 
-RUN curl --silent --fail -Lo /usr/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.10.0/hadolint-Linux-x86_64 && chmod 0755 /usr/bin/hadolint
+# install deb list
+COPY deb-list.txt /tmp/deb-list.txt
 
-RUN pip install --no-cache-dir --quiet --upgrade pip && pip install --no-cache-dir --quiet pre-commit
+RUN apt-get update && \
+    cat /tmp/deb-list.txt | DEBIAN_FRONTEND="noninteractive" xargs \
+        apt-get install -y --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/*
 
-RUN adduser --system pre-commit
-
-RUN install -d -o pre-commit /code /tmp/build
-COPY run-pre-commit /usr/local/bin
-
-USER pre-commit
-
-WORKDIR /tmp/build
+# install pre-commit
+RUN PIPX_HOME=/usr/local/pipx PIPX_BIN_DIR=/usr/local/bin pipx install pre-commit
 
 # Allow this repository's configuration to serve as a default which can be
 # overwritten by the target repo:
-COPY .pre-commit-config.yaml /tmp/build
+WORKDIR /tmp/build
+COPY .pre-commit-config.yaml .
+RUN git init && pre-commit install-hooks && rm -rf /tmp/build
 
-RUN git init && pre-commit install-hooks && find /tmp/build/ -delete
+RUN git config --global --add safe.directory /code
+COPY --chmod=755 run-pre-commit /usr/local/bin
 
 VOLUME /code
 WORKDIR /code

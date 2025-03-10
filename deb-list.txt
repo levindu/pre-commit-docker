@@ -1,0 +1,13 @@
+autoconf
+automake
+bison
+build-essential
+cmake
+curl
+flex
+gawk
+git
+git-lfs
+pipx
+pkg-config
+shellcheck
