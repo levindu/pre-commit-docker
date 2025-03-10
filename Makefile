@@ -13,8 +13,8 @@ build:
 		-t pre-commit:latest .
 
 docker-push:
-	docker tag pre-commit:latest levindu/pre-commit:latest
-	docker push levindu/pre-commit:latest
+	docker tag pre-commit:latest 172.16.0.12:5000/pre-commit:latest
+	docker push 172.16.0.12:5000/pre-commit:latest
 
 test: build
 	docker run -it --rm -v $(shell pwd):/code pre-commit:latest

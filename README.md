@@ -3,20 +3,38 @@
 This is just enough Docker to run [pre-commit](https://pre-commit.com) as a CI
 stage.
 
-Because they are on use on many projects, the following dependencies are
-pre-installed:
+### IMPORTANT!!! Enable insecure registries in Docker
 
--   terraform
--   terraform-docs
+Add following content to `/etc/docker/daemon.json`:
+
+``` json
+{
+  "insecure-registries": ["172.16.0.12:5000"]
+}
+```
+
+And restart docker with:
+
+    sudo systemctl restart docker
 
 ## Usage
 
 ### Docker
 
 ```bash
-$ docker run -it --rm --volume "$(pwd)":/code acdha/pre-commit:latest
-…
+$ docker run -it --rm --volume "$(pwd)":/code 172.16.0.12:5000/pre-commit:latest
 ```
+
+### Git commit hook
+
+``` bash
+cat <<\EOF >.git/hooks/pre-commit
+docker run --rm -v "$(pwd)":/code 172.16.0.12:5000/pre-commit:latest
+EOF
+
+chmod 755 .git/hooks/pre-commit
+```
+
 
 ### GitLab CI
 
@@ -28,7 +46,7 @@ project's `validate` stage:
 
 ```yaml
 include:
-    - project: devops/pre-commit-docker
+    - project: mirror/pre-commit-docker
       file: templates/pre-commit.yml
 ```
 
@@ -36,7 +54,7 @@ If you want to run during a different stage, you can override the default:
 
 ```yaml
 include:
-    - project: devops/pre-commit-docker
+    - project: mirror/pre-commit-docker
       file: templates/pre-commit.yml
 
 precommit:
@@ -51,7 +69,7 @@ job directly:
 ```yaml
 precommit:
     image:
-        name: git.loc.gov:4567/devops/pre-commit-docker/master:latest
+        name: 172.16.0.12:5000/pre-commit:latest
         entrypoint: [""]
     script:
         - exec /usr/local/bin/run-pre-commit

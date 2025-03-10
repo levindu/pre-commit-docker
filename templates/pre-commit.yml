@@ -1,5 +1,5 @@
 variables:
-    PRECOMMIT_DOCKER_IMAGE: "git.loc.gov:4567/devops/pre-commit-docker/master:latest"
+    PRECOMMIT_DOCKER_IMAGE: "172.16.0.12:5000/pre-commit:latest"
 
 precommit:
     stage: validate
