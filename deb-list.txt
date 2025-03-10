@@ -11,3 +11,9 @@ git-lfs
 pipx
 pkg-config
 shellcheck
+clang-format
+clang-tidy
+cppcheck
+cpplint
+iwyu
+uncrustify
